@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <!-- Home Page -->
+    <url>
+        <loc>https://indoorprince.com/</loc>
+        <lastmod>2025-01-11</lastmod> <!-- Change this to the actual last modified date -->
+        <priority>1.0</priority>
+    </url>
+    
+    <!-- About Page -->
+    <url>
+        <loc>https://indoorprince.com/about</loc>
+        <lastmod>2025-01-11</lastmod>
+        <priority>0.8</priority>
+    </url>
+    
+    <!-- Compendium Page -->
+    <url>
+        <loc>https://indoorprince.com/compendium</loc>
+        <lastmod>2025-01-11</lastmod>
+        <priority>0.8</priority>
+    </url>
+</urlset>
