@@ -67,7 +67,7 @@
 
 body {
   margin: 0;
-  padding: 34px 0 100px 0;
+  padding: 34px 14px 100px 14px;
   font-family: 'SFRounded';
   background-color: var(--main-bg-color);
   color: var(--main-text-color);
@@ -588,6 +588,12 @@ img {
   display: flex;
   font-size: 20px;
   line-height: 30px;
+}
+
+@media (max-width: 768px) {
+  .about-content {
+    flex-direction: column-reverse;
+  }
 }
 
 .about-title {
