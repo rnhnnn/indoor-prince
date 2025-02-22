@@ -1,284 +1,391 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Text Adventure</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        #game { max-width: 600px; margin: auto; padding: 20px; border: 1px solid #000; }
-        .scene-text { margin-bottom: 15px; }
-        .dialogue { margin-top: 15px; }
-        ul { list-style-type: none; padding: 0; }
-        .dialogue-choice {
-            cursor: pointer; 
-            color: blue; 
-            text-decoration: underline; 
-            margin: 5px 0; 
-            display: block;
-        }
-        .dialogue-choice:hover { color: darkblue; }
-        button { display: block; margin-top: 10px; padding: 10px; cursor: pointer; }
-        #save-btn {
-            position: fixed; 
-            top: 10px; 
-            right: 10px; 
-            padding: 5px;
-        }
-        #navigation { margin-top: 20px; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Text Adventure</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    #game { max-width: 600px; margin: auto; padding: 20px; border: 1px solid #000; }
+    .scene-text { margin-bottom: 15px; }
+    .dialogue { margin-top: 15px; }
+    ul { list-style-type: none; padding: 0; }
+    .dialogue-choice {
+      cursor: pointer; 
+      color: blue; 
+      text-decoration: underline; 
+      margin: 5px 0; 
+      display: block;
+    }
+    .dialogue-choice:hover { color: darkblue; }
+    button { display: block; margin-top: 10px; padding: 10px; cursor: pointer; }
+    #save-btn {
+      position: fixed; 
+      top: 10px; 
+      right: 10px; 
+      padding: 5px;
+    }
+    /* Actions container styling */
+    #actions { margin-top: 20px; }
+    #actions h3 { margin: 0; font-size: 1.2em; }
+    /* Inventory overlay styling */
+    #inventory-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7);
+      color: #fff;
+      z-index: 1000;
+      overflow: auto;
+    }
+    #inventory-overlay .inventory-content {
+      background: #333;
+      margin: 50px auto;
+      padding: 20px;
+      max-width: 400px;
+    }
+    #inventory-overlay h2 { margin-top: 0; }
+    #inventory-overlay button { margin-top: 20px; }
+  </style>
 </head>
 <body>
 
-    <div id="game">
-        <!-- Start Menu -->
-        <div id="start-menu">
-            <h1>Text Adventure</h1>
-            <button onclick="startGame()">New Game</button>
-            <button onclick="document.getElementById('load-input').click()">Load Game</button>
-            <input type="file" id="load-input" style="display: none;" onchange="loadGame(event)">
-        </div>
-
-        <!-- Scene Container -->
-        <div id="scene-container" style="display: none;"></div>
-
-        <!-- Save Button -->
-        <button id="save-btn" style="display: none;" onclick="saveGame()">Save Game</button>
+  <div id="game">
+    <!-- Start Menu -->
+    <div id="start-menu">
+      <h1>Text Adventure</h1>
+      <button onclick="startGame()">New Game</button>
+      <button onclick="document.getElementById('load-input').click()">Load Game</button>
+      <input type="file" id="load-input" style="display: none;" onchange="loadGame(event)" />
     </div>
 
-    <script>
-        const gameData = {
-            scenes: {
-                "crossroads": {
-                    "content": [
-                        "You arrive at a crossroads.",
-                        "There are two paths ahead."
-                    ],
-                    "actions": [
-                        { "text": "Take the Left Path", "next": "leftScene" },
-                        { "text": "Take the Right Path", "next": "rightScene" }
-                    ]
-                },
-                "leftScene": {
-                    "content": [
-                        "You take the left path and soon notice a cloaked figure standing by the roadside.",
-                        "He watches you silently as you approach."
-                    ],
-                    "dialogue": {
-                        "character": "Cloaked Stranger",
-                        "options": [
-                            { 
-                                "text": "Who are you?", 
-                                "response": "That is not important.", 
-                                "character": "Cloaked Stranger",
-                                "id": "q1"
-                            },
-                            { 
-                                "text": "Where does this road lead?", 
-                                "response": "It leads where you take it.", 
-                                "character": "Cloaked Stranger",
-                                "id": "q2"
-                            },
-                            { 
-                                "text": "What are you doing here?", 
-                                "response": "Waiting for someone.", 
-                                "character": "Mysterious Woman",
-                                "id": "q3"
-                            },
-                            { 
-                                "text": "Tell me the truth.", 
-                                "response": "Fine. I was once a traveler like you... but now I am lost.", 
-                                "id": "q4",
-                                "requires": ["q1"] 
-                            }
-                        ]
-                    },
-                    "actions": [
-                        { "text": "Ignore the man and keep walking", "next": "forestPath" },
-                        { "text": "Walk back to the crossroads", "next": "crossroads" }
-                    ]
-                },
-                "rightScene": {
-                    "content": [
-                        "You take the right path and start collecting interesting rocks.",
-                        "You put them in your pocket and continue walking."
-                    ],
-                    "actions": [
-                        { "text": "Go back to the crossroads", "next": "crossroads" }
-                    ]
-                }
-            }
-        };
+    <!-- Scene Container -->
+    <div id="scene-container" style="display: none;"></div>
 
-        let currentScene = "crossroads";
-        let chosenDialogues = new Set();
+    <!-- Save Button -->
+    <button id="save-btn" style="display: none;" onclick="saveGame()">Save Game</button>
+  </div>
 
-        function startGame() {
-            document.getElementById('start-menu').style.display = 'none';
-            document.getElementById('scene-container').style.display = 'block';
-            document.getElementById('save-btn').style.display = 'block';
-            renderScene(currentScene);
+  <!-- Inventory Overlay -->
+  <div id="inventory-overlay">
+    <div class="inventory-content">
+      <h2>Inventory</h2>
+      <div id="inventory-list"></div>
+      <button onclick="hideInventory()">Close</button>
+    </div>
+  </div>
+
+  <script>
+    const gameData = {
+      scenes: {
+        // New Character Introduction Scene
+        "characterIntro": {
+          content: [
+            "You are Silvie Monsell, a cunning thief forged in the back alleys of a grand city. Trained in the art of stealth and subterfuge, you work in the service of House Castalen, carrying out covert tasks that blur the lines between honor and survival. Your reputation for quick wit and quicker hands has spread throughout the underworld, yet you dream of something more than the life you've known."
+            // Optionally, you can include an image by using HTML markup.
+            // For example, if you have a black & white hand-drawn image of Silvie, you can do:
+            // "<img src='path/to/silvie.jpg' alt='Silvie Monsell' style='display:block; margin:20px auto; width:150px; height:150px; border:1px solid #000;' />"
+          ],
+          actions: [
+            { text: "Confirm", next: "crossroads" }
+          ]
+        },
+        "crossroads": {
+          content: [
+            "You arrive at a crossroads. The ancient stone path winds its way into a dense, mysterious forest, and the air is thick with the scent of pine and the distant murmur of running water."
+          ],
+          actions: [
+            { text: "Take the Left Path", next: "leftScene" },
+            { text: "Take the Right Path", next: "rightScene" }
+          ]
+        },
+        "leftScene": {
+          content: [
+            "You take the left path and soon notice a cloaked figure standing by the roadside.",
+            "He watches you silently as you approach."
+          ],
+          dialogue: {
+            options: [
+              { 
+                text: "Who are you?", 
+                response: `"That is not important," said the Cloaked Stranger. "But take this flute."`,
+                id: "q1",
+                giveItem: "flute"
+              },
+              { 
+                text: "Where does this road lead?", 
+                response: `"It leads where you take it."`,
+                id: "q2"
+              },
+              { 
+                text: "What are you doing here?", 
+                response: `"Waiting for someone."`,
+                id: "q3"
+              },
+              { 
+                text: "Tell me the truth.", 
+                response: `"Fine. I was once a traveler like you... but now I am lost."`,
+                id: "q4",
+                requires: ["q1"]
+              },
+              {
+                text: "Look at the flute",
+                response: "You hold the wooden flute in your hand. Its carvings are intricate, and it resonates with a mysterious melody.",
+                id: "q5",
+                requiresItem: "flute"
+              }
+            ]
+          },
+          actions: [
+            { text: "Ignore the man and keep walking", next: "forestPath" },
+            { text: "Walk back to the crossroads", next: "crossroads" }
+          ]
+        },
+        "rightScene": {
+          content: [
+            "You take the right path and start collecting interesting rocks.",
+            "You put them in your pocket and continue walking."
+          ],
+          actions: [
+            { text: "Go back to the crossroads", next: "crossroads" }
+          ]
+        },
+        "forestPath": {
+          content: [
+            "You venture deeper into the forest, the trees closing in around you."
+          ],
+          actions: [
+            { text: "Return to the crossroads", next: "crossroads" }
+          ]
+        }
+      }
+    };
+
+    // Start with the character intro scene
+    let currentScene = "characterIntro";
+    let chosenDialogues = new Set();
+    let inventory = []; // Global inventory array
+
+    const playerName = "Silvie";  // Player's main character name
+
+    function startGame() {
+      document.getElementById('start-menu').style.display = 'none';
+      document.getElementById('scene-container').style.display = 'block';
+      document.getElementById('save-btn').style.display = 'block';
+      renderScene(currentScene);
+    }
+
+    function renderScene(sceneId) {
+      const scene = gameData.scenes[sceneId];
+      if (!scene) {
+        alert("Scene not found: " + sceneId);
+        return;
+      }
+      currentScene = sceneId;
+
+      let sceneContainer = document.getElementById("scene-container");
+      sceneContainer.className = sceneId;
+      sceneContainer.innerHTML = "";
+
+      // Scene Content Container
+      let contentContainer = document.createElement("div");
+      contentContainer.id = "content-container";
+      sceneContainer.appendChild(contentContainer);
+
+      // Add Scene Content
+      updateSceneContent(scene.content);
+
+      // Dialogue (if available)
+      if (scene.dialogue) {
+        renderDialogue(scene);
+      }
+
+      // Actions Container
+      renderActions(scene);
+    }
+
+    // updateSceneContent now takes an array of paragraphs and uses innerHTML (to allow markup)
+    function updateSceneContent(paragraphs) {
+      let contentContainer = document.getElementById("content-container");
+      contentContainer.innerHTML = "";
+      paragraphs.forEach(text => {
+        let p = document.createElement("p");
+        p.className = "scene-text";
+        p.innerHTML = text;
+        contentContainer.appendChild(p);
+      });
+    }
+
+    function renderDialogue(scene) {
+      let dialogueBox = document.createElement("div");
+      dialogueBox.className = "dialogue";
+
+      let title = document.createElement("h3");
+      title.innerText = "Dialogue options:";
+      dialogueBox.appendChild(title);
+
+      let dialogueList = document.createElement("ul");
+
+      scene.dialogue.options.forEach(option => {
+        // Skip options that have already been selected
+        if (chosenDialogues.has(option.id)) return;
+        // Check for required dialogue options
+        if (option.requires && !option.requires.every(req => chosenDialogues.has(req))) {
+          return;
+        }
+        // Check for required item
+        if (option.requiresItem && !inventory.find(item => item.name.toLowerCase() === option.requiresItem.toLowerCase())) {
+          return;
         }
 
-        function renderScene(sceneId) {
-            const scene = gameData.scenes[sceneId];
-            if (!scene) {
-                alert("Scene not found: " + sceneId);
-                return;
-            }
-            currentScene = sceneId;
+        let li = document.createElement("li");
+        li.className = "dialogue-choice";
+        li.innerText = option.text;
+        li.onclick = () => selectDialogueOption(scene, option);
+        dialogueList.appendChild(li);
+      });
 
-            let sceneContainer = document.getElementById("scene-container");
-            sceneContainer.className = sceneId;
-            sceneContainer.innerHTML = "";
+      dialogueBox.appendChild(dialogueList);
+      // Insert dialogue before the actions container if present
+      let actionsEl = document.getElementById("actions");
+      if (actionsEl) {
+        document.getElementById("scene-container").insertBefore(dialogueBox, actionsEl);
+      } else {
+        document.getElementById("scene-container").appendChild(dialogueBox);
+      }
+    }
 
-            // Scene Content Container (will be updated by dialogue)
-            let contentContainer = document.createElement("div");
-            contentContainer.id = "content-container";
-            sceneContainer.appendChild(contentContainer);
+    function renderActions(scene) {
+      let actionsBox = document.createElement("div");
+      actionsBox.id = "actions";
 
-            // Add Initial Scene Content
-            updateSceneContent(scene.content);
+      // For the character intro scene, only show a confirm button without the "Actions:" title and inventory button.
+      if (currentScene === "characterIntro") {
+        let btn = document.createElement("button");
+        btn.innerText = "Confirm";
+        btn.onclick = () => renderScene("crossroads");
+        actionsBox.appendChild(btn);
+      } else {
+        let title = document.createElement("h3");
+        title.innerText = "Actions:";
+        actionsBox.appendChild(title);
 
-            // Dialogue Container
-            if (scene.dialogue) {
-                renderDialogue(scene);
-            }
+        let actionsList = document.createElement("ul");
 
-            // Navigation Buttons
-            let navigationContainer = document.createElement("div");
-            navigationContainer.id = "navigation";
-            
-            // Add Actions Heading
-            let actionsTitle = document.createElement("h3");
-            actionsTitle.innerText = "Actions:";
-            navigationContainer.appendChild(actionsTitle);
+        scene.actions.forEach(action => {
+          let li = document.createElement("li");
+          li.className = "dialogue-choice";
+          li.innerText = action.text;
+          li.onclick = () => renderScene(action.next);
+          actionsList.appendChild(li);
+        });
 
-            scene.actions.forEach(action => {
-                let btn = document.createElement("button");
-                btn.innerText = action.text;
-                btn.onclick = () => renderScene(action.next);
-                navigationContainer.appendChild(btn);
-            });
+        actionsBox.appendChild(actionsList);
 
-            sceneContainer.appendChild(navigationContainer);
+        // Inventory button (only in non-intro scenes)
+        let invBtn = document.createElement("button");
+        invBtn.innerText = "Inventory";
+        invBtn.disabled = inventory.length === 0;
+        invBtn.onclick = showInventory;
+        actionsBox.appendChild(invBtn);
+      }
+
+      document.getElementById("scene-container").appendChild(actionsBox);
+    }
+
+    function selectDialogueOption(scene, option) {
+      chosenDialogues.add(option.id);
+
+      // If the option gives an item, add it to inventory if not already present
+      if (option.giveItem) {
+        if (!inventory.find(item => item.name.toLowerCase() === option.giveItem.toLowerCase())) {
+          let newItem = {
+            name: "Flute",
+            description: "A wooden flute with intricate carvings. It produces a soft, mysterious melody."
+          };
+          inventory.push(newItem);
+          updateActionsInventoryButton();
         }
+      }
 
-        function updateSceneContent(paragraphs) {
-            let contentContainer = document.getElementById("content-container");
-            contentContainer.innerHTML = ""; // Clear previous content
+      // Replace the scene content with only the NPC's response.
+      let contentContainer = document.getElementById("content-container");
+      contentContainer.innerHTML = "";
 
-            paragraphs.forEach((text, index) => {
-                let p = document.createElement("p");
-                p.className = "scene-text";
-                p.innerText = text;
-                p.style.opacity = "0"; // Start hidden
-                contentContainer.appendChild(p);
+      let npcResponse = document.createElement("p");
+      npcResponse.className = "scene-text";
+      npcResponse.innerHTML = option.response;
+      contentContainer.appendChild(npcResponse);
 
-                // Fade in effect with delay
-                setTimeout(() => {
-                    p.style.transition = "opacity 0.5s";
-                    p.style.opacity = "1";
-                }, index * 500); // Adjust timing if needed
-            });
+      // Re-render dialogue to remove the chosen option
+      let dialogueBox = document.querySelector(".dialogue");
+      if (dialogueBox) {
+        dialogueBox.remove();
+        renderDialogue(scene);
+      }
+    }
+
+    function updateActionsInventoryButton() {
+      let actionsBox = document.getElementById("actions");
+      if (actionsBox) {
+        let invBtn = actionsBox.querySelector("button");
+        if (invBtn) {
+          invBtn.disabled = inventory.length === 0;
         }
+      }
+    }
 
-        function renderDialogue(scene) {
-            let dialogueBox = document.createElement("div");
-            dialogueBox.className = "dialogue";
+    function showInventory() {
+      let overlay = document.getElementById("inventory-overlay");
+      let invList = document.getElementById("inventory-list");
+      invList.innerHTML = "";
+      if (inventory.length === 0) {
+        invList.innerHTML = "<p>Your inventory is empty.</p>";
+      } else {
+        inventory.forEach(item => {
+          let itemDiv = document.createElement("div");
+          let itemName = document.createElement("strong");
+          itemName.innerText = item.name;
+          let itemDesc = document.createElement("p");
+          itemDesc.innerText = item.description;
+          itemDiv.appendChild(itemName);
+          itemDiv.appendChild(itemDesc);
+          invList.appendChild(itemDiv);
+        });
+      }
+      overlay.style.display = "block";
+    }
 
-            let title = document.createElement("h3");
-            title.innerText = "Dialogue options:";
-            dialogueBox.appendChild(title);
+    function hideInventory() {
+      document.getElementById("inventory-overlay").style.display = "none";
+    }
 
-            let dialogueList = document.createElement("ul");
+    function saveGame() {
+      const saveData = { currentScene, chosenDialogues: Array.from(chosenDialogues), inventory };
+      const blob = new Blob([JSON.stringify(saveData)], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "savegame.json";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
 
-            scene.dialogue.options.forEach(option => {
-                // Skip options that have already been selected
-                if (chosenDialogues.has(option.id)) {
-                    return;
-                }
-
-                // Check if the option requires previous choices
-                if (option.requires && option.requires.length > 0) {
-                    // Only show options that have the required previous choices
-                    if (!option.requires.every(req => chosenDialogues.has(req))) {
-                        return;
-                    }
-                }
-
-                let li = document.createElement("li");
-                li.className = "dialogue-choice";
-                li.innerText = option.text;
-                li.onclick = () => selectDialogueOption(scene, option);
-                dialogueList.appendChild(li);
-            });
-
-            dialogueBox.appendChild(dialogueList);
-            document.getElementById("scene-container").insertBefore(dialogueBox, document.getElementById("navigation"));
-        }
-
-        const playerName = "Silvie";  // Player's main character name
-
-        function selectDialogueOption(scene, option) {
-            chosenDialogues.add(option.id);
-
-            let contentContainer = document.getElementById("content-container");
-            
-            // Clear previous scene text so only dialogue remains
-            contentContainer.innerHTML = "";
-
-            // Create player's dialogue
-            let playerChoice = document.createElement("p");
-            playerChoice.className = "scene-text";
-            playerChoice.innerText = `${playerName} — ${option.text}`;
-            playerChoice.style.opacity = "1"; // Show immediately
-            contentContainer.appendChild(playerChoice);
-
-            // Create NPC response but keep it hidden initially
-            let npcResponse = document.createElement("p");
-            npcResponse.className = "scene-text";
-            npcResponse.innerText = `${option.character} — ${option.response}`;
-            npcResponse.style.opacity = "0"; // Start hidden
-            contentContainer.appendChild(npcResponse);
-
-            // Fade in NPC response after a short delay
-            setTimeout(() => {
-                npcResponse.style.transition = "opacity 0.5s";
-                npcResponse.style.opacity = "1";
-            }, 500);
-
-            // Re-render dialogue to remove chosen option
-            document.querySelector(".dialogue").remove();
-            renderDialogue(scene);
-        }
-
-        function saveGame() {
-            const saveData = { currentScene, chosenDialogues: Array.from(chosenDialogues) };
-            const blob = new Blob([JSON.stringify(saveData)], { type: "application/json" });
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = "savegame.json";
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        }
-
-        function loadGame(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const saveData = JSON.parse(e.target.result);
-                currentScene = saveData.currentScene;
-                chosenDialogues = new Set(saveData.chosenDialogues);
-                startGame();
-            };
-            reader.readAsText(file);
-        }
-
-    </script>
+    function loadGame(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const saveData = JSON.parse(e.target.result);
+        currentScene = saveData.currentScene;
+        chosenDialogues = new Set(saveData.chosenDialogues);
+        inventory = saveData.inventory || [];
+        startGame();
+      };
+      reader.readAsText(file);
+    }
+  </script>
 
 </body>
 </html>
