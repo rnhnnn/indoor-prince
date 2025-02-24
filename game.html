@@ -77,15 +77,12 @@
   </div>
 
   <script>
+    // Game data, including scenes and their content, dialogue, and actions.
     const gameData = {
       scenes: {
-        // New Character Introduction Scene
         "characterIntro": {
           content: [
-            "You are Silvie Monsell, a cunning thief forged in the back alleys of a grand city. Trained in the art of stealth and subterfuge, you work in the service of House Castalen, carrying out covert tasks that blur the lines between honor and survival. Your reputation for quick wit and quicker hands has spread throughout the underworld, yet you dream of something more than the life you've known."
-            // Optionally, you can include an image by using HTML markup.
-            // For example, if you have a black & white hand-drawn image of Silvie, you can do:
-            // "<img src='path/to/silvie.jpg' alt='Silvie Monsell' style='display:block; margin:20px auto; width:150px; height:150px; border:1px solid #000;' />"
+            "You are Silvie Monsell, a cunning thief in the service of House Castalen. Born in the underbelly of a grand metropolis, you learned early that survival depended on wit and subtlety. Your nimble fingers and quick thinking have made you a legend in secret circles, yet your heart longs for a purpose beyond mere survival."
           ],
           actions: [
             { text: "Confirm", next: "crossroads" }
@@ -162,13 +159,18 @@
       }
     };
 
-    // Start with the character intro scene
+    // Global variables to track the current scene, chosen dialogue options, and inventory.
     let currentScene = "characterIntro";
     let chosenDialogues = new Set();
     let inventory = []; // Global inventory array
 
-    const playerName = "Silvie";  // Player's main character name
+    // Player's main character name.
+    const playerName = "Silvie";
 
+    /* 
+     * Function: startGame
+     * Purpose: Hides the start menu, displays the game interface, and renders the current scene.
+     */
     function startGame() {
       document.getElementById('start-menu').style.display = 'none';
       document.getElementById('scene-container').style.display = 'block';
@@ -176,6 +178,10 @@
       renderScene(currentScene);
     }
 
+    /* 
+     * Function: renderScene
+     * Purpose: Renders a scene based on its ID by setting up the content container, dialogue (if available), and actions.
+     */
     function renderScene(sceneId) {
       const scene = gameData.scenes[sceneId];
       if (!scene) {
@@ -188,24 +194,27 @@
       sceneContainer.className = sceneId;
       sceneContainer.innerHTML = "";
 
-      // Scene Content Container
+      // Create the content container for the scene text.
       let contentContainer = document.createElement("div");
       contentContainer.id = "content-container";
       sceneContainer.appendChild(contentContainer);
 
-      // Add Scene Content
+      // Update content container with scene content.
       updateSceneContent(scene.content);
 
-      // Dialogue (if available)
+      // Render dialogue if the scene has dialogue.
       if (scene.dialogue) {
         renderDialogue(scene);
       }
 
-      // Actions Container
+      // Render actions (or confirm button in the intro scene).
       renderActions(scene);
     }
 
-    // updateSceneContent now takes an array of paragraphs and uses innerHTML (to allow markup)
+    /* 
+     * Function: updateSceneContent
+     * Purpose: Updates the content container with an array of paragraphs (allows HTML markup).
+     */
     function updateSceneContent(paragraphs) {
       let contentContainer = document.getElementById("content-container");
       contentContainer.innerHTML = "";
@@ -217,6 +226,10 @@
       });
     }
 
+    /* 
+     * Function: renderDialogue
+     * Purpose: Renders the dialogue options as an unordered list within a dialogue box.
+     */
     function renderDialogue(scene) {
       let dialogueBox = document.createElement("div");
       dialogueBox.className = "dialogue";
@@ -228,13 +241,13 @@
       let dialogueList = document.createElement("ul");
 
       scene.dialogue.options.forEach(option => {
-        // Skip options that have already been selected
+        // Skip options that have already been selected.
         if (chosenDialogues.has(option.id)) return;
-        // Check for required dialogue options
+        // Check if required dialogue options have been chosen.
         if (option.requires && !option.requires.every(req => chosenDialogues.has(req))) {
           return;
         }
-        // Check for required item
+        // Check if a required item is present.
         if (option.requiresItem && !inventory.find(item => item.name.toLowerCase() === option.requiresItem.toLowerCase())) {
           return;
         }
@@ -247,7 +260,7 @@
       });
 
       dialogueBox.appendChild(dialogueList);
-      // Insert dialogue before the actions container if present
+      // Insert the dialogue box before the actions container if it exists.
       let actionsEl = document.getElementById("actions");
       if (actionsEl) {
         document.getElementById("scene-container").insertBefore(dialogueBox, actionsEl);
@@ -256,17 +269,24 @@
       }
     }
 
+    /* 
+     * Function: renderActions
+     * Purpose: Renders the actions available in the scene.
+     *          In the character introduction scene, only a Confirm button is shown.
+     *          In other scenes, an Actions title, a list of actions, and an Inventory button are displayed.
+     */
     function renderActions(scene) {
       let actionsBox = document.createElement("div");
       actionsBox.id = "actions";
 
-      // For the character intro scene, only show a confirm button without the "Actions:" title and inventory button.
       if (currentScene === "characterIntro") {
+        // For the character intro scene, only show the Confirm button.
         let btn = document.createElement("button");
         btn.innerText = "Confirm";
         btn.onclick = () => renderScene("crossroads");
         actionsBox.appendChild(btn);
       } else {
+        // For all other scenes, display the Actions title and list.
         let title = document.createElement("h3");
         title.innerText = "Actions:";
         actionsBox.appendChild(title);
@@ -275,15 +295,14 @@
 
         scene.actions.forEach(action => {
           let li = document.createElement("li");
-          li.className = "dialogue-choice";
+          li.className = "dialogue-choice"; // Reusing the same style.
           li.innerText = action.text;
           li.onclick = () => renderScene(action.next);
           actionsList.appendChild(li);
         });
-
         actionsBox.appendChild(actionsList);
 
-        // Inventory button (only in non-intro scenes)
+        // Append the Inventory button.
         let invBtn = document.createElement("button");
         invBtn.innerText = "Inventory";
         invBtn.disabled = inventory.length === 0;
@@ -294,10 +313,15 @@
       document.getElementById("scene-container").appendChild(actionsBox);
     }
 
+    /* 
+     * Function: selectDialogueOption
+     * Purpose: Processes the selected dialogue option. It adds any item given to the inventory,
+     *          replaces the scene content with the NPC's response, and re-renders the dialogue options.
+     */
     function selectDialogueOption(scene, option) {
       chosenDialogues.add(option.id);
 
-      // If the option gives an item, add it to inventory if not already present
+      // If the option gives an item, add it to the inventory if not already present.
       if (option.giveItem) {
         if (!inventory.find(item => item.name.toLowerCase() === option.giveItem.toLowerCase())) {
           let newItem = {
@@ -312,13 +336,12 @@
       // Replace the scene content with only the NPC's response.
       let contentContainer = document.getElementById("content-container");
       contentContainer.innerHTML = "";
-
       let npcResponse = document.createElement("p");
       npcResponse.className = "scene-text";
       npcResponse.innerHTML = option.response;
       contentContainer.appendChild(npcResponse);
 
-      // Re-render dialogue to remove the chosen option
+      // Re-render dialogue to remove the chosen option.
       let dialogueBox = document.querySelector(".dialogue");
       if (dialogueBox) {
         dialogueBox.remove();
@@ -326,16 +349,25 @@
       }
     }
 
+    /* 
+     * Function: updateActionsInventoryButton
+     * Purpose: Updates the disabled state of the Inventory button in the actions container based on the current inventory.
+     */
     function updateActionsInventoryButton() {
       let actionsBox = document.getElementById("actions");
       if (actionsBox) {
-        let invBtn = actionsBox.querySelector("button");
+        // Find the Inventory button (assumed to be the last button in the actions container)
+        let invBtn = actionsBox.querySelector("button:last-of-type");
         if (invBtn) {
           invBtn.disabled = inventory.length === 0;
         }
       }
     }
 
+    /* 
+     * Function: showInventory
+     * Purpose: Displays the inventory overlay with a list of items in the player's inventory.
+     */
     function showInventory() {
       let overlay = document.getElementById("inventory-overlay");
       let invList = document.getElementById("inventory-list");
@@ -357,10 +389,18 @@
       overlay.style.display = "block";
     }
 
+    /* 
+     * Function: hideInventory
+     * Purpose: Hides the inventory overlay.
+     */
     function hideInventory() {
       document.getElementById("inventory-overlay").style.display = "none";
     }
 
+    /* 
+     * Function: saveGame
+     * Purpose: Saves the current game state (current scene, chosen dialogues, inventory) to a JSON file.
+     */
     function saveGame() {
       const saveData = { currentScene, chosenDialogues: Array.from(chosenDialogues), inventory };
       const blob = new Blob([JSON.stringify(saveData)], { type: "application/json" });
@@ -372,6 +412,10 @@
       document.body.removeChild(a);
     }
 
+    /* 
+     * Function: loadGame
+     * Purpose: Loads a saved game state from a JSON file and restarts the game.
+     */
     function loadGame(event) {
       const file = event.target.files[0];
       if (!file) return;
